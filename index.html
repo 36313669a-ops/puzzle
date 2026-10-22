@@ -1,0 +1,304 @@
+<!DOCTYPE html>
+<html lang="zh-Hant">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>北觀拼圖大挑戰</title>
+<style>
+:root{--blue:#176b87;--deep:#123b52;--mint:#dff4ed;--gold:#ffd166;--red:#e85d5d}
+*{box-sizing:border-box}
+body{margin:0;font-family:"Microsoft JhengHei",sans-serif;background:linear-gradient(135deg,#eaf8f5,#eaf2ff);color:#173b4b;min-height:100vh}
+button{font:inherit;cursor:pointer;border:0}
+.page{max-width:1180px;margin:auto;padding:24px}
+header{text-align:center;padding:12px 0 20px}
+h1{font-size:clamp(28px,4vw,44px);margin:8px 0;color:var(--deep)}
+.subtitle{color:#53717e;margin:0}
+.panel{background:#fff;border-radius:24px;padding:clamp(18px,3vw,32px);box-shadow:0 12px 35px #19485c18}
+.hidden{display:none!important}
+.primary{background:var(--blue);color:white;padding:13px 24px;border-radius:999px;font-weight:700;box-shadow:0 5px 0 #0c4c65}
+.primary:hover{filter:brightness(1.08);transform:translateY(-1px)}
+.secondary{background:#e7f2f5;color:var(--deep);padding:11px 18px;border-radius:999px;font-weight:700}
+.home-hero{text-align:center;padding:24px 10px 30px}
+.hero-icon{font-size:72px;line-height:1.3}
+.home-hero p{line-height:1.8;color:#55727d;max-width:650px;margin:10px auto 24px}
+.choose-title{text-align:center;margin:4px 0 22px}
+.photo-grid{display:grid;grid-template-columns:repeat(4,minmax(0,1fr));gap:18px}
+.photo-card{background:#f5fafb;border:3px solid transparent;border-radius:18px;overflow:hidden;text-align:left;transition:.18s;min-width:0}
+.photo-card:hover{border-color:#7ac8c0;transform:translateY(-3px)}
+.photo-thumb{width:100%;aspect-ratio:4/3;background:#d8e8ed center/cover no-repeat;display:grid;place-items:center;color:#67818b;font-size:14px}
+.photo-thumb img{width:100%;height:100%;object-fit:cover;display:block}
+.photo-info{padding:13px 14px 16px}
+.photo-info strong{display:block;font-size:17px;margin-bottom:5px}
+.photo-info span{font-size:13px;color:#68818b}
+.game-top{display:flex;align-items:center;justify-content:space-between;gap:12px;flex-wrap:wrap;margin-bottom:18px}
+.stats{display:flex;gap:10px;flex-wrap:wrap}
+.stat{background:#eef7f8;border-radius:12px;padding:9px 14px;font-weight:700}
+.stat b{color:#176b87}
+.game-layout{display:grid;grid-template-columns:minmax(0,1.1fr) minmax(260px,.9fr);gap:22px;align-items:start}
+.board-wrap{position:relative;max-width:600px;width:100%;margin:auto}
+.board{width:100%;display:grid;grid-template-columns:repeat(3,1fr);gap:4px;aspect-ratio:1/1;background:#c8dce2;padding:4px;border-radius:14px;overflow:hidden;touch-action:none}
+.slot{position:relative;min-width:0;min-height:0;background:#f7fbfc;border:2px dashed #b9d0d8;border-radius:5px;overflow:hidden}
+.slot.fixed,.slot.filled{border:2px solid #fff}
+.slot.wrong{border:3px solid var(--red);animation:shake .2s}
+.slot .fixed-tag{position:absolute;right:4px;top:4px;background:#ffffffd9;color:#26715e;border-radius:6px;font-size:11px;padding:2px 5px}
+@keyframes shake{25%{transform:translateX(-2px)}75%{transform:translateX(2px)}}
+.preview{position:absolute;inset:4px;z-index:3;display:none;background:#fff;border-radius:10px;padding:8px;box-shadow:0 5px 25px #123b5240}
+.preview img{width:100%;height:100%;object-fit:contain}
+.preview.show{display:block}
+.side-panel{background:#f7fbfc;border-radius:16px;padding:16px}
+.side-panel h3{margin:0 0 7px}
+.help{font-size:13px;line-height:1.65;color:#5e7983;margin:0 0 13px}
+.pieces{display:grid;grid-template-columns:repeat(3,minmax(0,1fr));gap:8px}
+.piece{aspect-ratio:1/1;background-color:white;background-repeat:no-repeat;border:2px solid white;border-radius:8px;box-shadow:0 2px 6px #123b5218;cursor:grab;touch-action:none;position:relative;overflow:hidden}
+.piece:active{cursor:grabbing}
+.piece.used{visibility:hidden;pointer-events:none}
+.piece.dragging{opacity:.25}
+.drag-ghost{position:fixed;z-index:1000;width:100px;height:100px;pointer-events:none;border:3px solid white;border-radius:9px;box-shadow:0 8px 22px #123b5260;background-repeat:no-repeat;background-color:#fff;transform:translate(-50%,-50%)}
+.game-actions{display:flex;gap:10px;flex-wrap:wrap;margin-top:16px}
+.note{font-size:12px;color:#66808a;margin-top:12px;line-height:1.6}
+.overlay{position:fixed;inset:0;background:#0e2e3dc9;z-index:2000;display:none;place-items:center;padding:20px}
+.overlay.show{display:grid}
+.result{background:#fff;border-radius:24px;padding:30px;text-align:center;max-width:420px;width:100%;box-shadow:0 20px 60px #0003}
+.result .emoji{font-size:58px}
+.result h2{margin:8px 0;color:var(--deep)}
+.result p{color:#59747e;line-height:1.7}
+@media(max-width:850px){.photo-grid{grid-template-columns:repeat(2,minmax(0,1fr))}.game-layout{grid-template-columns:1fr}.board-wrap{max-width:520px}}
+@media(max-width:480px){.page{padding:12px}.panel{padding:14px}.photo-grid{gap:10px}.photo-info{padding:10px}.photo-info strong{font-size:15px}.game-top{align-items:flex-start}.pieces{gap:6px}}
+</style>
+</head>
+<body>
+<div class="page">
+  <header>
+    <div style="font-size:30px">🧩 🌿</div>
+    <h1>北觀拼圖大挑戰</h1>
+    <p class="subtitle">拼出風景，探索北觀之美！</p>
+  </header>
+
+  <section id="home" class="panel">
+    <div class="home-hero">
+      <div class="hero-icon">🧩</div>
+      <h2>準備好接受挑戰了嗎？</h2>
+      <p>選擇一張喜歡的北觀風景照片，完成 3×3 拼圖挑戰。你有 30 秒的時間，部分拼圖已固定，拖曳其他拼圖片到正確位置即可！</p>
+      <button class="primary" id="startChoose">開始挑戰・選擇照片</button>
+    </div>
+  </section>
+
+  <section id="choose" class="panel hidden">
+    <h2 class="choose-title">請選擇想挑戰的風景照片</h2>
+    <div class="photo-grid" id="photoGrid"></div>
+    <div style="text-align:center;margin-top:24px"><button class="secondary" id="backHome">返回首頁</button></div>
+  </section>
+
+  <section id="game" class="panel hidden">
+    <div class="game-top">
+      <button class="secondary" id="backChoose">← 更換照片</button>
+      <div class="stats">
+        <div class="stat">⏱ 剩餘 <b id="time">30</b> 秒</div>
+        <div class="stat">完成 <b id="count">0</b> / 9</div>
+      </div>
+    </div>
+    <h2 id="gameTitle" style="text-align:center;margin:0 0 18px">風景拼圖挑戰</h2>
+    <div class="game-layout">
+      <div class="board-wrap">
+        <div id="board" class="board"></div>
+        <div id="preview" class="preview"><img id="previewImg" alt="完整照片提示"></div>
+      </div>
+      <aside class="side-panel">
+        <h3>待拼圖片</h3>
+        <p class="help">用滑鼠或手指拖曳拼圖片，放到正確的格子。答錯時，目標格會短暫顯示紅框。最後 10 秒會顯示完整照片提示。</p>
+        <div id="pieces" class="pieces"></div>
+        <div class="game-actions">
+          <button class="primary" id="restart">重新挑戰</button>
+          <button class="secondary" id="chooseOther">選其他照片</button>
+        </div>
+        <p class="note">小提醒：畫面上的固定拼圖不能移動；完成所有拼圖即可獲勝。</p>
+      </aside>
+    </div>
+  </section>
+</div>
+
+<div id="overlay" class="overlay">
+  <div class="result">
+    <div class="emoji" id="resultEmoji">🎉</div>
+    <h2 id="resultTitle">挑戰完成！</h2>
+    <p id="resultText"></p>
+    <button class="primary" id="playAgain">再玩一次</button>
+    <button class="secondary" id="resultChoose" style="margin-left:6px">選其他照片</button>
+  </div>
+</div>
+
+<script>
+/* 請將四張照片放在本 HTML 同一個資料夾，檔名依序為 01.jpg、02.jpg、03.jpg、04.jpg */
+const IMAGE_FILES = ["01.jpg","02.jpg","03.jpg","04.jpg"];
+const IMAGE_NAMES = ["硬漢嶺入口","女王頭地景","林梢步道觀景台","金山蹦火"];
+const ROWS = 3, COLS = 3, TOTAL = ROWS * COLS, GAME_SECONDS = 30, FIXED_COUNT = 4;
+
+const $ = id => document.getElementById(id);
+let selectedIndex = 0, imageUrl = "", imageReady = false;
+let timer = null, timeLeft = GAME_SECONDS, solved = 0, gameOver = false;
+let fixedPositions = new Set(), placedPositions = new Set(), pieces = [], dragState = null;
+let previewTimer = null;
+
+function fileUrl(name){ return name; }
+function showPage(page){
+  ["home","choose","game"].forEach(id => $(id).classList.toggle("hidden", id !== page));
+  $("overlay").classList.remove("show");
+}
+function buildPhotoChoices(){
+  const grid = $("photoGrid");
+  grid.innerHTML = "";
+  IMAGE_FILES.forEach((file,index) => {
+    const card = document.createElement("button");
+    card.className = "photo-card";
+    card.type = "button";
+    const thumb = document.createElement("div");
+    thumb.className = "photo-thumb";
+    const img = document.createElement("img");
+    img.src = fileUrl(file);
+    img.alt = IMAGE_NAMES[index] || `風景照片 ${index+1}`;
+    img.onerror = () => { thumb.innerHTML = `<span>找不到 ${file}<br>請確認照片與 HTML 放在同一資料夾</span>`; };
+    thumb.appendChild(img);
+    const info = document.createElement("div");
+    info.className = "photo-info";
+    info.innerHTML = `<strong>${IMAGE_NAMES[index] || "北觀風景 " + (index+1)}</strong><span>3×3 拼圖挑戰</span>`;
+    card.append(thumb,info);
+    card.addEventListener("click", () => startGame(index));
+    grid.appendChild(card);
+  });
+}
+function spriteStyle(el,index){
+  const row = Math.floor(index / COLS), col = index % COLS;
+  el.style.backgroundImage = `url("${imageUrl}")`;
+  el.style.backgroundSize = `${COLS*100}% ${ROWS*100}%`;
+  el.style.backgroundPosition = `${COLS===1?0:col/(COLS-1)*100}% ${ROWS===1?0:row/(ROWS-1)*100}%`;
+}
+function stopTimers(){
+  if(timer) clearInterval(timer);
+  if(previewTimer) clearInterval(previewTimer);
+  timer = null; previewTimer = null;
+}
+function startGame(index){
+  selectedIndex = index;
+  imageUrl = fileUrl(IMAGE_FILES[index]);
+  const test = new Image();
+  test.onload = () => { imageReady = true; prepareGame(); };
+  test.onerror = () => {
+    imageReady = false;
+    alert(`無法載入 ${IMAGE_FILES[index]}。請確認照片已放在 HTML 同一個資料夾，且檔名完全相同。`);
+  };
+  test.src = imageUrl;
+}
+function prepareGame(){
+  stopTimers();
+  gameOver = false; timeLeft = GAME_SECONDS; solved = 0;
+  fixedPositions = new Set(); placedPositions = new Set(); pieces = []; dragState = null;
+  $("time").textContent = timeLeft;
+  $("count").textContent = solved;
+  $("gameTitle").textContent = IMAGE_NAMES[selectedIndex] || `北觀風景 ${selectedIndex+1}`;
+  $("previewImg").src = imageUrl;
+  $("preview").classList.remove("show");
+  showPage("game");
+  const all = Array.from({length:TOTAL},(_,i)=>i);
+  while(fixedPositions.size < FIXED_COUNT) fixedPositions.add(Math.floor(Math.random()*TOTAL));
+  const board = $("board"); board.innerHTML = "";
+  all.forEach(i => {
+    const slot = document.createElement("div");
+    slot.className = "slot"; slot.dataset.index = i;
+    if(fixedPositions.has(i)){
+      slot.classList.add("fixed","filled"); spriteStyle(slot,i);
+      const tag = document.createElement("span"); tag.className="fixed-tag"; tag.textContent="固定"; slot.appendChild(tag);
+      placedPositions.add(i); solved++;
+    }
+    slot.addEventListener("pointerup", e => handleDrop(e, i));
+    board.appendChild(slot);
+  });
+  $("count").textContent = solved;
+  const tray = $("pieces"); tray.innerHTML = "";
+  const movable = all.filter(i=>!fixedPositions.has(i)).sort(()=>Math.random()-.5);
+  movable.forEach(i => {
+    const piece = document.createElement("div");
+    piece.className = "piece"; piece.dataset.index = i; spriteStyle(piece,i);
+    piece.setAttribute("aria-label",`拼圖片 ${i+1}`);
+    piece.addEventListener("pointerdown", e => beginDrag(e,piece,i));
+    tray.appendChild(piece); pieces.push(piece);
+  });
+  timer = setInterval(() => {
+    if(gameOver) return;
+    timeLeft--; $("time").textContent = timeLeft;
+    if(timeLeft <= 10 && solved < TOTAL) $("preview").classList.add("show");
+    if(timeLeft <= 0) finishGame(false);
+  },1000);
+}
+function beginDrag(e,piece,index){
+  if(gameOver || placedPositions.has(index)) return;
+  e.preventDefault();
+  const rect = piece.getBoundingClientRect();
+  dragState = {index,piece,pointerId:e.pointerId,offsetX:e.clientX-rect.left,offsetY:e.clientY-rect.top};
+  piece.classList.add("dragging");
+  const ghost = document.createElement("div");
+  ghost.className = "drag-ghost"; ghost.id="dragGhost";
+  ghost.style.width = rect.width+"px"; ghost.style.height=rect.height+"px";
+  spriteStyle(ghost,index);
+  document.body.appendChild(ghost);
+  moveGhost(e);
+  document.addEventListener("pointermove",moveGhost);
+  document.addEventListener("pointerup",endDrag,{once:true});
+  document.addEventListener("pointercancel",endDrag,{once:true});
+}
+function moveGhost(e){
+  if(!dragState || e.pointerId!==dragState.pointerId) return;
+  const ghost=$("dragGhost"); if(!ghost) return;
+  ghost.style.left=e.clientX+"px"; ghost.style.top=e.clientY+"px";
+}
+function endDrag(e){
+  if(!dragState || e.pointerId!==dragState.pointerId) return;
+  const x=e.clientX,y=e.clientY;
+  const target=document.elementFromPoint(x,y);
+  const slot=target && target.closest ? target.closest(".slot") : null;
+  if(slot) handleDrop(e,Number(slot.dataset.index));
+  cleanupDrag();
+}
+function cleanupDrag(){
+  if(dragState) dragState.piece.classList.remove("dragging");
+  const ghost=$("dragGhost"); if(ghost) ghost.remove();
+  document.removeEventListener("pointermove",moveGhost);
+  dragState=null;
+}
+function handleDrop(e,targetIndex){
+  if(!dragState || gameOver) return;
+  const pieceIndex=dragState.index;
+  const slot=$("board").querySelector(`.slot[data-index="${targetIndex}"]`);
+  if(!slot || placedPositions.has(targetIndex)) return;
+  if(pieceIndex===targetIndex){
+    slot.classList.add("filled");
+    spriteStyle(slot,pieceIndex);
+    placedPositions.add(pieceIndex);
+    dragState.piece.classList.add("used");
+    solved++; $("count").textContent=solved;
+    if(solved===TOTAL) finishGame(true);
+  } else {
+    slot.classList.add("wrong");
+    setTimeout(()=>slot.classList.remove("wrong"),450);
+  }
+}
+function finishGame(won){
+  if(gameOver) return;
+  gameOver=true; stopTimers(); cleanupDrag();
+  $("resultEmoji").textContent=won?"🎉":"⏰";
+  $("resultTitle").textContent=won?"拼圖完成！":"時間到！";
+  $("resultText").textContent=won
+    ? `太棒了！你成功完成「${IMAGE_NAMES[selectedIndex] || "北觀風景"}」拼圖。`
+    : `再試一次就會更熟練！你完成了 ${solved} / ${TOTAL} 片拼圖。`;
+  $("overlay").classList.add("show");
+}
+$("startChoose").addEventListener("click",()=>{buildPhotoChoices();showPage("choose");});
+$("backHome").addEventListener("click",()=>showPage("home"));
+$("backChoose").addEventListener("click",()=>{stopTimers();cleanupDrag();buildPhotoChoices();showPage("choose");});
+$("chooseOther").addEventListener("click",()=>{stopTimers();cleanupDrag();buildPhotoChoices();showPage("choose");});
+$("restart").addEventListener("click",()=>startGame(selectedIndex));
+$("playAgain").addEventListener("click",()=>startGame(selectedIndex));
+$("resultChoose").addEventListener("click",()=>{buildPhotoChoices();showPage("choose");});
+buildPhotoChoices();
+</script>
+</body>
+</html>
